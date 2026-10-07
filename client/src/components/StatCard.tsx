@@ -3,7 +3,6 @@ import type { LucideIcon } from 'lucide-react'
 const tones = {
   slate: 'bg-slate-100 text-slate-600',
   green: 'bg-green-100 text-green-700',
-  orange: 'bg-orange-100 text-orange-700',
   teal: 'bg-teal-100 text-desk-package',
 }
 

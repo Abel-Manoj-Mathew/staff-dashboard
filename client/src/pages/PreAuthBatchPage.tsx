@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronRight, CircleAlert, CircleCheck, Inbox, IndianRupee, Layers, RefreshCw, Search, X } from 'lucide-react'
+import { ChevronRight, CircleAlert, CircleCheck, Inbox, IndianRupee, Layers, ListChecks, RefreshCw, Search, X } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader.tsx'
-import { AiCheckBadge } from '../components/AiCheckBadge.tsx'
 import { StatCard } from '../components/StatCard.tsx'
-import { formatAadhaar, formatRupees, simulateAiCheck, type AiCheck, type PreAuthRecord } from '../lib/preAuth.ts'
+import { formatAadhaar, formatRupees, type PreAuthRecord } from '../lib/preAuth.ts'
 
-type Row = PreAuthRecord & { check: AiCheck }
-type Filter = 'all' | 'ready' | 'attention'
 type Notice = { kind: 'success' | 'error'; text: string }
 
+const COLUMN_COUNT = 6
 const checkboxClass = 'size-4 cursor-pointer rounded border-slate-300 accent-desk-teal'
 
 export function PreAuthBatchPage() {
@@ -17,7 +15,6 @@ export function PreAuthBatchPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [approving, setApproving] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -46,24 +43,18 @@ export function PreAuthBatchPage() {
     return () => controller.abort()
   }, [reloadKey])
 
-  const rows = useMemo<Row[]>(() => records.map((r) => ({ ...r, check: simulateAiCheck(r) })), [records])
-
-  const readyCount = rows.filter((r) => r.check.ok).length
-  const attentionCount = rows.length - readyCount
-  const totalEstimate = rows.reduce((sum, r) => sum + (r.estimatedCost ?? 0), 0)
+  const totalEstimate = records.reduce((sum, r) => sum + (r.estimatedCost ?? 0), 0)
 
   const visibleRows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return rows.filter((r) => {
-      if (filter === 'ready' && !r.check.ok) return false
-      if (filter === 'attention' && r.check.ok) return false
-      if (!q) return true
-      return [r.patientName, r.diagnosis, r.packageName, r.aadhaarLast4].some((v) => v?.toLowerCase().includes(q))
-    })
-  }, [rows, filter, query])
+    if (!q) return records
+    return records.filter((r) =>
+      [r.patientName, r.diagnosis, r.packageName, r.aadhaarLast4].some((v) => v?.toLowerCase().includes(q)),
+    )
+  }, [records, query])
 
   const selectedCount = selected.size
-  const selectedEstimate = rows.reduce((sum, r) => (selected.has(r.id) ? sum + (r.estimatedCost ?? 0) : sum), 0)
+  const selectedEstimate = records.reduce((sum, r) => (selected.has(r.id) ? sum + (r.estimatedCost ?? 0) : sum), 0)
   const visibleSelectedCount = visibleRows.filter((r) => selected.has(r.id)).length
   const allVisibleSelected = visibleRows.length > 0 && visibleSelectedCount === visibleRows.length
 
@@ -115,12 +106,6 @@ export function PreAuthBatchPage() {
     }
   }
 
-  const filters: { id: Filter; label: string; count: number }[] = [
-    { id: 'all', label: 'All', count: rows.length },
-    { id: 'ready', label: 'Ready', count: readyCount },
-    { id: 'attention', label: 'Needs attention', count: attentionCount },
-  ]
-
   return (
     <div className="min-h-screen">
       <AppHeader />
@@ -145,10 +130,9 @@ export function PreAuthBatchPage() {
           </button>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label="Claims in batch" value={String(rows.length)} icon={Layers} tone="slate" loading={loading} />
-          <StatCard label="Ready to approve" value={String(readyCount)} icon={CircleCheck} tone="green" loading={loading} />
-          <StatCard label="Needs attention" value={String(attentionCount)} icon={CircleAlert} tone="orange" loading={loading} />
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard label="Claims in batch" value={String(records.length)} icon={Layers} tone="slate" loading={loading} />
+          <StatCard label="Selected for approval" value={String(selectedCount)} icon={ListChecks} tone="green" loading={loading} />
           <StatCard label="Total estimate" value={formatRupees(totalEstimate)} icon={IndianRupee} tone="teal" loading={loading} />
         </div>
 
@@ -166,24 +150,7 @@ export function PreAuthBatchPage() {
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-            <div className="inline-flex rounded-lg bg-slate-100 p-0.5" role="tablist" aria-label="Filter claims">
-              {filters.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === f.id}
-                  onClick={() => setFilter(f.id)}
-                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                    filter === f.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  {f.label}
-                  <span className="ml-1.5 text-slate-400 tabular-nums">{f.count}</span>
-                </button>
-              ))}
-            </div>
+          <div className="flex justify-end border-b border-slate-200 px-4 py-3">
             <label className="relative block w-full sm:w-64">
               <span className="sr-only">Search claims</span>
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" aria-hidden />
@@ -237,15 +204,14 @@ export function PreAuthBatchPage() {
                   <th scope="col" className="px-3 py-2.5">Aadhaar</th>
                   <th scope="col" className="px-3 py-2.5">Diagnosis (ERP)</th>
                   <th scope="col" className="px-3 py-2.5">AI Package</th>
-                  <th scope="col" className="px-3 py-2.5">Estimate</th>
-                  <th scope="col" className="py-2.5 pr-4 pl-3">AI Check</th>
+                  <th scope="col" className="py-2.5 pr-4 pl-3">Estimate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {loading &&
                   Array.from({ length: 5 }, (_, i) => (
                     <tr key={i}>
-                      {Array.from({ length: 7 }, (_, j) => (
+                      {Array.from({ length: COLUMN_COUNT }, (_, j) => (
                         <td key={j} className={j === 0 ? 'py-3 pr-2 pl-4' : 'px-3 py-3'}>
                           <span className={`block h-3.5 animate-pulse rounded bg-slate-200 ${j === 0 ? 'w-4' : 'w-3/4'}`} />
                         </td>
@@ -255,7 +221,7 @@ export function PreAuthBatchPage() {
 
                 {!loading && loadError && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center">
+                    <td colSpan={COLUMN_COUNT} className="px-4 py-12 text-center">
                       <CircleAlert className="mx-auto size-6 text-red-500" aria-hidden />
                       <p className="mt-2 font-medium text-slate-900">Couldn't load the batch</p>
                       <p className="mt-0.5 text-slate-500">{loadError}</p>
@@ -272,15 +238,15 @@ export function PreAuthBatchPage() {
 
                 {!loading && !loadError && visibleRows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center">
+                    <td colSpan={COLUMN_COUNT} className="px-4 py-12 text-center">
                       <Inbox className="mx-auto size-6 text-slate-400" aria-hidden />
                       <p className="mt-2 font-medium text-slate-900">
-                        {rows.length === 0 ? 'No claims waiting for approval' : 'No claims match your filters'}
+                        {records.length === 0 ? 'No claims waiting for approval' : 'No claims match your search'}
                       </p>
                       <p className="mt-0.5 text-slate-500">
-                        {rows.length === 0
+                        {records.length === 0
                           ? 'New claims appear here once patients complete registration.'
-                          : 'Try a different search or filter.'}
+                          : 'Try a different search.'}
                       </p>
                     </td>
                   </tr>
@@ -312,11 +278,8 @@ export function PreAuthBatchPage() {
                         </td>
                         <td className="px-3 py-2.5">{row.diagnosis ?? '—'}</td>
                         <td className="px-3 py-2.5 font-bold text-desk-package">{row.packageName ?? '—'}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap text-slate-900 tabular-nums">
+                        <td className="py-2.5 pr-4 pl-3 whitespace-nowrap text-slate-900 tabular-nums">
                           {formatRupees(row.estimatedCost)}
-                        </td>
-                        <td className="py-2.5 pr-4 pl-3">
-                          <AiCheckBadge check={row.check} />
                         </td>
                       </tr>
                     )
@@ -327,7 +290,7 @@ export function PreAuthBatchPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-4 py-2.5 text-[12px] text-slate-500">
             <span>
-              Showing {loading ? 0 : visibleRows.length} of {rows.length} claim{rows.length === 1 ? '' : 's'}
+              Showing {loading ? 0 : visibleRows.length} of {records.length} claim{records.length === 1 ? '' : 's'}
             </span>
             {selectedCount > 0 && (
               <span className="font-medium text-slate-700">

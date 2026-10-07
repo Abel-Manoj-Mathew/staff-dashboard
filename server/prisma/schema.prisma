@@ -1,0 +1,35 @@
+// Read-only view of the patient-registration database. The tables, and their migrations, are owned by
+// hospital-patient-reg/server/prisma — this schema only mirrors the `amala` model so we can query it.
+// Do NOT run `prisma migrate` or `prisma db push` from here: this schema doesn't know about the other
+// tables, so Prisma would try to drop them. Only `prisma generate` is safe.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Copied from hospital-patient-reg/server/prisma/schema.prisma. The `session` relation is left out
+// because the Session model isn't part of this app; `sessionId` is kept as a plain column.
+model Amala {
+  id              String    @id @default(uuid())
+  sessionId       String?   @unique
+  patientName     String?
+  dateOfBirth     DateTime?
+  yearOfBirth     Int?
+  address         String?
+  // Stored encrypted (`<iv hex>:<ciphertext hex>`), see src/aadhaar.ts.
+  aadhaarNumber   String?
+  dateOfAdmission DateTime?
+  dateOfDischarge DateTime?
+  diagnosis       String?
+  packageName     String?
+  estimatedCost   Decimal?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("amala")
+}

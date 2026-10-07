@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Colours sampled from the claim-desk mockup. */
+  --color-desk-navy: #0b3a4f;
+  --color-desk-teal: #138a8c;
+  --color-desk-teal-hover: #17a0a2;
+  --color-desk-package: #0d6672;
+}
+
+body {
+  background-color: var(--color-slate-100);
+}

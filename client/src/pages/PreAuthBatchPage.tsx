@@ -6,7 +6,7 @@ import { formatAadhaar, formatRupees, type PreAuthRecord } from '../lib/preAuth.
 
 type Notice = { kind: 'success' | 'error'; text: string }
 
-const COLUMN_COUNT = 6
+const COLUMN_COUNT = 5
 const checkboxClass = 'size-4 cursor-pointer rounded border-slate-300 accent-desk-teal'
 
 export function PreAuthBatchPage() {
@@ -203,8 +203,7 @@ export function PreAuthBatchPage() {
                   <th scope="col" className="px-3 py-2.5">Patient</th>
                   <th scope="col" className="px-3 py-2.5">Aadhaar</th>
                   <th scope="col" className="px-3 py-2.5">Diagnosis (ERP)</th>
-                  <th scope="col" className="px-3 py-2.5">AI Package</th>
-                  <th scope="col" className="py-2.5 pr-4 pl-3">Estimate</th>
+                  <th scope="col" className="py-2.5 pr-4 pl-3">AI Package</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -277,10 +276,7 @@ export function PreAuthBatchPage() {
                           {formatAadhaar(row.aadhaarLast4)}
                         </td>
                         <td className="px-3 py-2.5">{row.diagnosis ?? '—'}</td>
-                        <td className="px-3 py-2.5 font-bold text-desk-package">{row.packageName ?? '—'}</td>
-                        <td className="py-2.5 pr-4 pl-3 whitespace-nowrap text-slate-900 tabular-nums">
-                          {formatRupees(row.estimatedCost)}
-                        </td>
+                        <td className="py-2.5 pr-4 pl-3 font-bold text-desk-package">{row.packageName ?? '—'}</td>
                       </tr>
                     )
                   })}
